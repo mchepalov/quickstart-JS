@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Быстрый старт JS</title>
+  </head>
+  <body>
+    <h1 style="text-align: center">Веб-компоненты</h1>
+    <div id="container" style="margin: 30px"></div>
+
+    <script>
+      const onLoad = (evt) => {
+        const componentName = evt.target.dataset.name;
+        console.log('Загрузка компонента:', componentName);
+
+        if (window.MySelect) {
+          customElements.define(componentName, window.MySelect);
+          const element = document.createElement(componentName);
+
+          document.getElementById('container').appendChild(element);
+          console.log(`Компонент ${componentName} добавлен в DOM`);
+        }
+      };
+
+      const onError = (err) => {
+        console.error('Ошибка загрузки:', err);
+      };
+
+      const components = ['my-select'];
+
+      components.forEach((component) => {
+        const script = document.createElement('script');
+        script.src = `./${component}.js`;
+        script.dataset.name = component;
+        script.addEventListener('load', onLoad);
+        script.addEventListener('error', onError);
+        document.body.append(script);
+      });
+    </script>
+  </body>
+</html>
