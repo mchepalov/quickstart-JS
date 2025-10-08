@@ -5,21 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Быстрый старт JS</title>
   </head>
-  <body>
-    <h1 style="text-align: center">Веб-компоненты</h1>
-    <div id="container" style="margin: 30px"></div>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
 
-    <script>
+    body h1 {
+      margin: 15px 0;
+    }
+
+    my-select {
+      margin: 10px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      width: 75%;
+      text-align: center;
+    }
+
+    my-select button,
+    my-select input,
+    my-select label,
+    my-select h3 {
+      margin: 10px 5px;
+    }
+  </style>
+  <body>
+    <h1>Веб-компоненты</h1>
+
+    <my-select>
+      <option value="opt1">Option 1</option>
+      <option value="opt2">Option 2</option>
+      <option value="opt3">Option 3</option>
+    </my-select>
+
+    <script defer>
       const onLoad = (evt) => {
         const componentName = evt.target.dataset.name;
-        console.log('Загрузка компонента:', componentName);
 
         if (window.MySelect) {
           customElements.define(componentName, window.MySelect);
-          const element = document.createElement(componentName);
-
-          document.getElementById('container').appendChild(element);
-          console.log(`Компонент ${componentName} добавлен в DOM`);
         }
       };
 
