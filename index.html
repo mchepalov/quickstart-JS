@@ -29,12 +29,22 @@
       </div>
     </my-panel>
 
+    <my-card header="Карточка" sub-header="Подзаголовок">
+      <div slot="content">
+        <p>Содерживое карточки</p>
+        <p>Информация</p>
+      </div>
+      <div slot="footer">
+        <p>Содержимое футера карточки</p>
+      </div>
+    </my-card>
+
     <script>
       const onError = (err) => {
         console.error('Ошибка загрузки:', err);
       };
 
-      const components = ['my-select', 'my-panel'];
+      const components = ['my-select', 'my-panel', 'my-card'];
 
       components.forEach((component) => {
         const script = document.createElement('script');
