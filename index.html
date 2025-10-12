@@ -19,32 +19,26 @@
   <body>
     <h1>Веб-компоненты</h1>
 
-    <my-select>
-      <option value="opt1">Option 1</option>
-      <option value="opt2">Option 2</option>
-      <option value="opt3">Option 3</option>
-    </my-select>
+    <my-panel>
+      <div slot="content">
+        <my-select>
+          <option value="opt1">Option 1</option>
+          <option value="opt2">Option 2</option>
+          <option value="opt3">Option 3</option>
+        </my-select>
+      </div>
+    </my-panel>
 
     <script>
-      const onLoad = (evt) => {
-        const componentName = evt.target.dataset.name;
-
-        if (window.MySelect) {
-          customElements.define(componentName, window.MySelect);
-        }
-      };
-
       const onError = (err) => {
         console.error('Ошибка загрузки:', err);
       };
 
-      const components = ['my-select'];
+      const components = ['my-select', 'my-panel'];
 
       components.forEach((component) => {
         const script = document.createElement('script');
         script.src = `./${component}.js`;
-        script.dataset.name = component;
-        script.addEventListener('load', onLoad);
         script.addEventListener('error', onError);
         document.body.append(script);
       });
