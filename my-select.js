@@ -5,7 +5,9 @@ class MySelect extends HTMLElement {
   #selectPopup;
   #selectPopupSearch;
   #optionsBox;
+  #selectedOptionsDisplay;
   #options = []; // Массив для хранения данных опций
+  #selectedValues = []; // Массив для хранения выбранных значений
 
   constructor() {
     super();
@@ -50,8 +52,11 @@ class MySelect extends HTMLElement {
           border: 1px solid #ccc;
           border-radius: 4px;
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-          width: 50%;
+          width: 100%;
+          max-width: 100%;
           height: 300px;
+          box-sizing: border-box;
+          overflow: visible;
         }
 
         .select-button {
@@ -61,7 +66,7 @@ class MySelect extends HTMLElement {
           background: white;
           cursor: pointer;
           position: relative;
-          width: 50%;
+          width: 100%;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -98,11 +103,14 @@ class MySelect extends HTMLElement {
           position: absolute;
           top: calc(100% + 4px);
           left: 0;
-          right: 0;
+          width: 100%;
           background: white;
           border: 1px solid #d1d5db;
           box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
           border-radius: 6px;
+          z-index: 1000;
+          max-width: 100%;
+          box-sizing: border-box;
         }
 
         .select-popup.open {
@@ -164,6 +172,7 @@ class MySelect extends HTMLElement {
       </style>
       
       <h3>Веб-компонент my-select:</h3>
+      <p id="selectedOptionsDisplay">Ничего не выбрано</p>
       <button class="select-button">
         Выберите опции
         <div class="select-popup">
@@ -182,6 +191,9 @@ class MySelect extends HTMLElement {
       '.select-popup-search'
     );
     this.#optionsBox = this.#shadow.querySelector('.select-popup-options');
+    this.#selectedOptionsDisplay = this.#shadow.querySelector(
+      '#selectedOptionsDisplay'
+    );
 
     // Добавляем обработчик клика на кнопку
     this.#selectButton.addEventListener('click', () => this.#openPopup());
@@ -190,6 +202,9 @@ class MySelect extends HTMLElement {
     this.#selectPopup.addEventListener('click', (e) => {
       e.stopPropagation();
     });
+
+    // Добавляем обработчик для закрытия по клику вне компонента
+    document.addEventListener('click', (e) => this.#handleOutsideClick(e));
   }
 
   #renderOptions() {
@@ -220,13 +235,116 @@ class MySelect extends HTMLElement {
 
     // Удаляем оригинальные элементы option из DOM
     optionElements.forEach((option) => option.remove());
+
+    // Добавляем обработчики для выбора опций
+    this.#setupOptionHandlers();
+
+    // Добавляем простой поиск
+    this.#setupSearch();
+  }
+
+  #setupSearch() {
+    const searchInput = this.#shadow.querySelector('.select-popup-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        const options = this.#optionsBox.querySelectorAll('.option');
+
+        options.forEach((option) => {
+          const text = option.textContent.toLowerCase();
+          if (text.includes(searchTerm)) {
+            option.style.display = 'flex';
+          } else {
+            option.style.display = 'none';
+          }
+        });
+      });
+    }
+  }
+
+  #handleOutsideClick(e) {
+    if (
+      !this.contains(e.target) &&
+      this.#selectPopup.classList.contains('open')
+    ) {
+      this.#closePopup();
+    }
   }
 
   #openPopup() {
     this.#selectPopup.classList.toggle('open');
     this.#selectButton.classList.toggle('open');
   }
+
+  #closePopup() {
+    this.#selectPopup.classList.remove('open');
+    this.#selectButton.classList.remove('open');
+
+    // Очищаем поле поиска
+    if (this.#selectPopupSearch) {
+      this.#selectPopupSearch.value = '';
+      // Показываем все опции после очистки поиска
+      const options = this.#optionsBox.querySelectorAll('.option');
+      options.forEach((option) => {
+        option.style.display = 'flex';
+      });
+    }
+  }
+
+  #setupOptionHandlers() {
+    const options = this.#optionsBox.querySelectorAll('.option');
+
+    options.forEach((optionElement) => {
+      const checkbox = optionElement.querySelector('input[type="checkbox"]');
+      const value = optionElement.dataset.value;
+
+      // Добавляем обработчик изменения чекбокса
+      checkbox.addEventListener('change', (e) => {
+        e.stopPropagation(); // Предотвращаем всплытие события
+
+        if (e.target.checked) {
+          // Добавляем значение в выбранные
+          if (!this.#selectedValues.includes(value)) {
+            this.#selectedValues.push(value);
+          }
+        } else {
+          // Удаляем значение из выбранных
+          this.#selectedValues = this.#selectedValues.filter(
+            (v) => v !== value
+          );
+        }
+
+        // Обновляем отображение выбранных опций
+        this.#updateSelectedOptions();
+      });
+
+      // Добавляем обработчик клика для опции, чтобы предотвратить закрытие попапа
+      optionElement.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+    });
+  }
+
+  #updateSelectedOptions() {
+    // Получаем тексты выбранных опций
+    const selectedTexts = this.#selectedValues.map((value) => {
+      const option = this.#options.find((opt) => opt.value === value);
+      return option ? option.text : value;
+    });
+
+    // Обновляем отображение в параграфе
+    if (this.#selectedOptionsDisplay) {
+      if (selectedTexts.length === 0) {
+        this.#selectedOptionsDisplay.textContent = 'Ничего не выбрано';
+      } else {
+        this.#selectedOptionsDisplay.textContent = selectedTexts.join(', ');
+      }
+    }
+  }
 }
+
+// Регистрируем компонент
+customElements.define('my-select', MySelect);
 
 // Экспортируем класс через window
 window.MySelect = MySelect;
