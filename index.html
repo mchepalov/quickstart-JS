@@ -126,9 +126,10 @@
     </my-card>
 
     <div class="section">
-      <h2>Web Workers API - Демонстрация</h2>
+      <h2>Service Worker API - Демонстрация</h2>
       <div class="container">
         <button id="start">Запустить вычисления!</button>
+        <button id="unregister">Unregister Service Worker</button>
 
         <div id="spinner" class="hidden">
           <svg
@@ -167,145 +168,120 @@
         document.body.append(script);
       });
 
-      // Web Workers API
-      let thread = null;
-      let isThreadCreated = false; // Флаг для отслеживания создания воркера
-
-      // Функция для тяжелых вычислений (для сравнения)
-      const slowFunction = (timeout = 3000) => {
-        let start = performance.now();
-        let x = 0;
-        let i = 0;
-        do {
-          i += 1;
-          x += (Math.random() - 0.5) * i;
-        } while (performance.now() - start < timeout);
-        return x;
+      // Service Worker API
+      const getServiceWorker = async (scriptURL, options) => {
+        if ('serviceWorker' in navigator) {
+          try {
+            let registration = await navigator.serviceWorker.getRegistration();
+            if (!registration) {
+              registration = await navigator.serviceWorker.register(
+                scriptURL,
+                options
+              );
+              await navigator.serviceWorker.ready;
+            }
+            return {
+              registration: registration,
+              container: navigator.serviceWorker,
+              controller: registration.active,
+              addEventListener: navigator.serviceWorker.addEventListener.bind(
+                navigator.serviceWorker
+              ),
+              postMessage: registration.active.postMessage.bind(
+                registration.active
+              ),
+            };
+          } catch (error) {
+            console.error(`Registration failed with ${error}`);
+          }
+        }
       };
 
-      // Обработчик кнопки
-      document.getElementById('start').addEventListener('click', () => {
-        const button = document.getElementById('start');
-        const spinner = document.getElementById('spinner');
-        const status = document.getElementById('status');
+      let serviceWorker = null;
+
+      // Инициализация Service Worker
+      (async () => {
+        serviceWorker = await getServiceWorker('./service-worker.js', {
+          scope: './',
+        });
+        if (!serviceWorker) {
+          document.getElementById('status').textContent =
+            'Service Worker не поддерживается';
+          return;
+        }
+        console.log('Service Worker зарегистрирован:', serviceWorker);
+
+        // Запрашиваем закешированный результат при загрузке
+        serviceWorker.postMessage({ type: 'getCached', timeout: 3000 });
+      })();
+
+      // Обработчик сообщений от Service Worker
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        const data = event.data;
         const result = document.getElementById('result');
 
-        // Проверяем поддержку Web Workers
-        if (!window.Worker) {
-          alert('Ваш браузер не поддерживает Web Workers!');
+        if (data.type === 'cachedResult') {
+          result.innerHTML = `
+            <h3>Закешированный результат:</h3>
+            <p><strong>Значение:</strong> ${data.result.result}</p>
+            <p><strong>Время выполнения:</strong> ${data.result.duration}мс</p>
+            <p><strong>Итераций:</strong> ${data.result.iterations}</p>
+            <p><em>Данные получены из кеша Service Worker</em></p>
+          `;
+        } else if (data.type === 'newResult') {
+          result.innerHTML = `
+            <h3>Новый результат:</h3>
+            <p><strong>Значение:</strong> ${data.result.result}</p>
+            <p><strong>Время выполнения:</strong> ${data.result.duration}мс</p>
+            <p><strong>Итераций:</strong> ${data.result.iterations}</p>
+            <p><em>Результат пересчитан и отправлен во все вкладки</em></p>
+          `;
+        }
+      });
+
+      // Обработчик кнопки Start
+      document.getElementById('start').addEventListener('click', () => {
+        if (!serviceWorker) {
+          alert('Service Worker не зарегистрирован!');
           return;
         }
 
-        // Блокируем кнопку и показываем анимацию
-        button.disabled = true;
-        button.textContent = isThreadCreated
-          ? 'Переиспользуем воркер...'
-          : 'Создаем воркер...';
-        spinner.classList.remove('hidden');
-        status.textContent = isThreadCreated
-          ? 'Переиспользуем существующий воркер...'
-          : 'Создаем новый воркер...';
-        result.textContent = 'Ожидаем результат...';
-
-        // Создаем Web Worker только если он еще не был создан
-        if (!isThreadCreated) {
-          thread = new Worker('./thread.js');
-          isThreadCreated = true;
-
-          // Обработчик сообщений от воркера с помощью addEventListener
-          thread.addEventListener('message', (event) => {
-            const data = event.data;
-            console.log(
-              '[ОСНОВНОЙ ПОТОК] Получено сообщение от thread.js:',
-              data
-            );
-
-            if (data.type === 'progress') {
-              status.textContent = `Прогресс: ${data.progress}%`;
-            } else if (data.type === 'result') {
-              console.log(
-                '[ОСНОВНОЙ ПОТОК] Получен финальный результат:',
-                data
-              );
-              // Получаем результат
-              result.innerHTML = `
-                          <h3>Результат вычислений (через вложенный воркер):</h3>
-                          <p><strong>Значение:</strong> ${data.result}</p>
-                          <p><strong>Время выполнения:</strong> ${data.duration}мс</p>
-                          <p><strong>Итераций:</strong> ${data.iterations}</p>
-                          <p><strong>Архитектура:</strong> Главный поток → thread.js → thread2.js</p>
-                      `;
-
-              // Скрываем анимацию и разблокируем кнопку
-              spinner.classList.add('hidden');
-              button.disabled = false;
-              button.textContent = 'Запустить вычисления! (Воркер готов)';
-              status.textContent = 'Готово! Анимация работала плавно.';
-            }
-          });
-
-          // Обработчик ошибок воркера
-          thread.onerror = (error) => {
-            console.error('Ошибка в Web Worker:', error);
-            result.textContent = 'Произошла ошибка при выполнении вычислений.';
-            spinner.classList.add('hidden');
-            button.disabled = false;
-            button.textContent = 'Запустить вычисления! (Воркер готов)';
-            status.textContent = 'Ошибка!';
-          };
-        }
-
-        // Запускаем вычисления в воркере с помощью postMessage
-        console.log(
-          '[ОСНОВНОЙ ПОТОК] Отправляем сообщение в thread.js с timeout: 5000мс'
-        );
-        thread.postMessage({ timeout: 5000 });
-      });
-
-      // Демонстрация блокировки основного потока (для сравнения)
-      document.getElementById('start').addEventListener('dblclick', () => {
         const button = document.getElementById('start');
         const spinner = document.getElementById('spinner');
         const status = document.getElementById('status');
         const result = document.getElementById('result');
 
         button.disabled = true;
-        button.textContent = 'Блокируем основной поток...';
+        button.textContent = 'Пересчитываем...';
         spinner.classList.remove('hidden');
-        status.textContent = 'ВНИМАНИЕ: Анимация будет тормозить!';
-        result.textContent =
-          'Выполняем тяжелые вычисления в основном потоке...';
+        status.textContent = 'Выполняем пересчет в Service Worker...';
+        result.textContent = 'Ожидаем результат...';
 
-        // Имитируем прогресс
-        let progress = 0;
-        const progressInterval = setInterval(() => {
-          progress += 10;
-          status.textContent = `Прогресс в основном потоке: ${progress}%`;
+        // Запускаем принудительную перегенерацию
+        serviceWorker.postMessage({ type: 'recalculate', timeout: 3000 });
 
-          if (progress >= 100) {
-            clearInterval(progressInterval);
-
-            // Выполняем тяжелые вычисления в основном потоке
-            const startTime = performance.now();
-            const resultValue = slowFunction(2000);
-            const endTime = performance.now();
-
-            result.innerHTML = `
-                        <h3>Результат (основной поток):</h3>
-                        <p><strong>Значение:</strong> ${resultValue}</p>
-                        <p><strong>Время выполнения:</strong> ${Math.round(
-                          endTime - startTime
-                        )}мс</p>
-                        <p><strong>Примечание:</strong> Анимация могла тормозить!</p>
-                    `;
-
-            spinner.classList.add('hidden');
-            button.disabled = false;
-            button.textContent = 'Запустить вычисления!';
-            status.textContent = 'Готово! (Анимация могла тормозить)';
-          }
-        }, 200);
+        // Разблокируем кнопку через некоторое время
+        setTimeout(() => {
+          button.disabled = false;
+          button.textContent = 'Запустить вычисления!';
+          spinner.classList.add('hidden');
+          status.textContent = 'Готов к работе';
+        }, 100);
       });
+
+      // Обработчик кнопки Unregister
+      document
+        .getElementById('unregister')
+        .addEventListener('click', async () => {
+          if (serviceWorker && serviceWorker.registration) {
+            await serviceWorker.registration.unregister();
+            serviceWorker = null;
+            document.getElementById('result').innerHTML =
+              '<p>Service Worker отключен</p>';
+            document.getElementById('status').textContent =
+              'Service Worker отключен';
+          }
+        });
     </script>
   </body>
 </html>
