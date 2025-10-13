@@ -212,19 +212,28 @@
           thread = new Worker('./thread.js');
           isThreadCreated = true;
 
-          // Обработчик сообщений от воркера
-          thread.onmessage = (event) => {
+          // Обработчик сообщений от воркера с помощью addEventListener
+          thread.addEventListener('message', (event) => {
             const data = event.data;
+            console.log(
+              '[ОСНОВНОЙ ПОТОК] Получено сообщение от thread.js:',
+              data
+            );
 
             if (data.type === 'progress') {
               status.textContent = `Прогресс: ${data.progress}%`;
             } else if (data.type === 'result') {
+              console.log(
+                '[ОСНОВНОЙ ПОТОК] Получен финальный результат:',
+                data
+              );
               // Получаем результат
               result.innerHTML = `
-                          <h3>Результат вычислений:</h3>
+                          <h3>Результат вычислений (через вложенный воркер):</h3>
                           <p><strong>Значение:</strong> ${data.result}</p>
                           <p><strong>Время выполнения:</strong> ${data.duration}мс</p>
                           <p><strong>Итераций:</strong> ${data.iterations}</p>
+                          <p><strong>Архитектура:</strong> Главный поток → thread.js → thread2.js</p>
                       `;
 
               // Скрываем анимацию и разблокируем кнопку
@@ -233,7 +242,7 @@
               button.textContent = 'Запустить вычисления! (Воркер готов)';
               status.textContent = 'Готово! Анимация работала плавно.';
             }
-          };
+          });
 
           // Обработчик ошибок воркера
           thread.onerror = (error) => {
@@ -246,8 +255,11 @@
           };
         }
 
-        // Запускаем вычисления в воркере
-        thread.postMessage({ timeout: 3000 });
+        // Запускаем вычисления в воркере с помощью postMessage
+        console.log(
+          '[ОСНОВНОЙ ПОТОК] Отправляем сообщение в thread.js с timeout: 5000мс'
+        );
+        thread.postMessage({ timeout: 5000 });
       });
 
       // Демонстрация блокировки основного потока (для сравнения)
