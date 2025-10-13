@@ -1,52 +1,56 @@
 // Web Worker для выполнения тяжелых вычислений
-// Этот код выполняется в отдельном потоке
+// Этот код выполняется в отдельном потоке и создает вложенный воркер
 
-// Функция для тяжелых вычислений
-const slowFunction = (timeout = 3000) => {
-  let start = performance.now();
-  let x = 0;
-  let i = 0;
+console.log(
+  '[THREAD.JS] Промежуточный воркер инициализирован и готов к работе'
+);
 
-  do {
-    i += 1;
-    x += (Math.random() - 0.5) * i;
-
-    // Отправляем прогресс каждые 100 итераций
-    if (i % 100 === 0) {
-      const elapsed = performance.now() - start;
-      const progress = Math.min(100, Math.round((elapsed / timeout) * 100));
-
-      self.postMessage({
-        type: 'progress',
-        progress: progress,
-      });
-    }
-  } while (performance.now() - start < timeout);
-
-  return {
-    result: x,
-    iterations: i,
-    duration: Math.round(performance.now() - start),
-  };
-};
+let nestedWorker = null;
 
 // Обработчик сообщений от основного потока
-self.onmessage = (event) => {
-  const { timeout } = event.data;
-
-  // Выполняем тяжелые вычисления
-  const startTime = performance.now();
-  const result = slowFunction(timeout);
-  const endTime = performance.now();
-
-  // Отправляем результат обратно в основной поток
-  self.postMessage({
-    type: 'result',
-    result: result.result,
-    iterations: result.iterations,
-    duration: result.duration,
+self.addEventListener('message', (evt) => {
+  const { timeout } = evt.data;
+  console.log('[THREAD.JS] Получено сообщение от основного потока:', {
+    timeout,
   });
-};
+
+  // Создаем вложенный воркер, если он еще не создан
+  if (!nestedWorker) {
+    console.log('[THREAD.JS] Создаем вложенный воркер thread2.js');
+    nestedWorker = new Worker('./thread2.js');
+
+    // Обработчик сообщений от вложенного воркера
+    nestedWorker.addEventListener('message', (event) => {
+      const result = event.data;
+      console.log('[THREAD.JS] Получен результат от thread2.js:', result);
+
+      // Отправляем результат обратно в основной поток
+      console.log('[THREAD.JS] Отправляем результат в основной поток');
+      self.postMessage({
+        type: 'result',
+        result: result.result,
+        iterations: result.iterations,
+        duration: result.duration,
+      });
+    });
+
+    // Обработчик ошибок вложенного воркера
+    nestedWorker.onerror = (error) => {
+      console.error('[THREAD.JS] Ошибка во вложенном воркере:', error);
+      self.postMessage({
+        type: 'error',
+        message: 'Произошла ошибка во вложенном воркере',
+      });
+    };
+  }
+
+  // Отправляем задачу во вложенный воркер
+  console.log(
+    '[THREAD.JS] Отправляем задачу в thread2.js с timeout:',
+    timeout || 3000
+  );
+  nestedWorker.postMessage({ timeout: timeout || 3000 });
+});
 
 // Обработчик ошибок
 self.onerror = (error) => {
