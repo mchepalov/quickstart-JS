@@ -14,13 +14,9 @@
         const componentName = evt.target.dataset.name;
         console.log('Загрузка компонента:', componentName);
 
-        if (window.MySelect) {
-          customElements.define(componentName, window.MySelect);
-          const element = document.createElement(componentName);
-
-          document.getElementById('container').appendChild(element);
-          console.log(`Компонент ${componentName} добавлен в DOM`);
-        }
+        const element = document.createElement(componentName);
+        document.getElementById('container').appendChild(element);
+        console.log(`Компонент ${componentName} добавлен в DOM`);
       };
 
       const onError = (err) => {

@@ -1,12 +1,6 @@
 class MySelect extends HTMLElement {
   constructor() {
     super();
-
-    // Получаем название компонента из data-атрибута скрипта
-    const currentScript = document.currentScript;
-    const componentName = currentScript
-      ? currentScript.dataset.name
-      : 'my-select';
   }
 
   connectedCallback() {
@@ -22,5 +16,10 @@ class MySelect extends HTMLElement {
   }
 }
 
-// Экспортируем класс через window
-window.MySelect = MySelect;
+const currentScript = document.currentScript;
+const componentName = currentScript?.dataset.name || 'my-select';
+
+if (componentName) {
+  customElements.define(componentName, MySelect);
+  console.log(`Компонент ${componentName} автоматически зарегистрирован`);
+}
