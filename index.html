@@ -42,12 +42,16 @@
       <option value="opt3">Option 3</option>
     </my-select>
 
-    <script defer>
+    <script>
       const onLoad = (evt) => {
         const componentName = evt.target.dataset.name;
+        console.log('Скрипт загружен:', evt.target.src);
+        console.log('Имя компонента:', componentName);
+        console.log('MySelect доступен:', !!window.MySelect);
 
         if (window.MySelect) {
           customElements.define(componentName, window.MySelect);
+          console.log('Компонент зарегистрирован:', componentName);
         }
       };
 
@@ -57,14 +61,18 @@
 
       const components = ['my-select'];
 
-      components.forEach((component) => {
-        const script = document.createElement('script');
-        script.src = `./${component}.js`;
-        script.dataset.name = component;
-        script.addEventListener('load', onLoad);
-        script.addEventListener('error', onError);
-        document.body.append(script);
-      });
+      setTimeout(() => {
+        console.log('Начинаем загрузку веб-компонента через 1 секунду');
+        
+        components.forEach((component) => {
+          const script = document.createElement('script');
+          script.src = `./${component}.js`;
+          script.dataset.name = component;
+          script.addEventListener('load', onLoad);
+          script.addEventListener('error', onError);
+          document.body.append(script);
+        });
+      }, 1000);
     </script>
   </body>
 </html>
