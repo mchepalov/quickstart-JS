@@ -8,19 +8,11 @@ class MySelect extends HTMLElement {
 
   constructor() {
     super();
-
-    // Получаем название компонента из data-атрибута скрипта
-    const currentScript = document.currentScript;
-    const componentName = currentScript
-      ? currentScript.dataset.name
-      : 'my-select';
-  }
-
-  connectedCallback() {
-    // Срабатывает, когда пользовательский элемент впервые добавляется в DOM
     this.#createTemplate();
     this.#renderOptions();
   }
+
+  connectedCallback() {}
 
   disconnectedCallback() {
     // Срабатывает, когда пользовательский элемент удаляется из DOM
@@ -85,5 +77,4 @@ class MySelect extends HTMLElement {
   }
 }
 
-// Экспортируем класс через window
-window.MySelect = MySelect;
+customElements.define('my-select', MySelect);

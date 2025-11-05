@@ -35,25 +35,25 @@
   </style>
   <body>
     <h1>Веб-компоненты</h1>
+    <script defer>
+const onLoad = (evt) => {
+  const componentName = evt.target.dataset.name;
+  const MySelect = evt.target.componentClass; 
+    
+    const container = document.createElement('div');
 
-    <my-select>
-      <option value="opt1">Option 1</option>
-      <option value="opt2">Option 2</option>
-      <option value="opt3">Option 3</option>
-    </my-select>
-
-    <script>
-      const onLoad = (evt) => {
-        const componentName = evt.target.dataset.name;
-        console.log('Скрипт загружен:', evt.target.src);
-        console.log('Имя компонента:', componentName);
-        console.log('MySelect доступен:', !!window.MySelect);
-
-        if (window.MySelect) {
-          customElements.define(componentName, window.MySelect);
-          console.log('Компонент зарегистрирован:', componentName);
-        }
-      };
+    container.innerHTML = `
+      <${componentName}>
+        <option value="opt1">Option 1</option>
+        <option value="opt2">Option 2</option>
+        <option value="opt3">Option 3</option>
+      </${componentName}>
+    `;
+    
+    const el = container.firstElementChild;
+    document.body.append(el);
+    console.log('Элемент добавлен в DOM');
+};
 
       const onError = (err) => {
         console.error('Ошибка загрузки:', err);
@@ -61,8 +61,8 @@
 
       const components = ['my-select'];
 
+      console.log('Начинаем загрузку веб-компонента через 1 секунду');
       setTimeout(() => {
-        console.log('Начинаем загрузку веб-компонента через 1 секунду');
         
         components.forEach((component) => {
           const script = document.createElement('script');
